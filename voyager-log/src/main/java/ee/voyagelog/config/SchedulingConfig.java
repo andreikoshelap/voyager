@@ -10,8 +10,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import javax.sql.DataSource;
 
 /**
- * ShedLock избыточен для одного инстанса, но защищает от двойных алертов,
- * если когда-нибудь появится второй под / blue-green деплой.
+ * ShedLock is redundant for a single instance, but prevents duplicate alerts
+ * if a second pod or blue-green deployment is added later.
  */
 @Configuration
 @EnableSchedulerLock(defaultLockAtMostFor = "PT10M")

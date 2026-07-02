@@ -1,5 +1,6 @@
 package ee.voyagelog.skipper;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,8 +15,10 @@ public class EmergencyContact {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "skipper_id")
     private Long skipperId;
     private String name;
+    @Column(name = "telegram_chat_id")
     private Long telegramChatId;
     private String phone;
 

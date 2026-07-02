@@ -1,5 +1,6 @@
 package ee.voyagelog.harbour;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,10 +20,14 @@ public class Harbour {
     private String name;
     private Double lat;
     private Double lon;
+    @Column(name = "vhf_channel")
     private String vhfChannel;
     private String phone;
+    @Column(name = "telegram_chat_id")
     private Long telegramChatId;
+    @Column(name = "depth_m")
     private BigDecimal depthM;
+    @Column(name = "price_note")
     private String priceNote;
 
     protected Harbour() {

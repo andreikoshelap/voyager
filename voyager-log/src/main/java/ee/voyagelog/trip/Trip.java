@@ -1,5 +1,6 @@
 package ee.voyagelog.trip;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -19,18 +20,26 @@ public class Trip {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "skipper_id")
     private Long skipperId;
+    @Column(name = "vessel_id")
     private Long vesselId;
+    @Column(name = "departure_harbour_id")
     private Long departureHarbourId;
     private String destination;
+    @Column(name = "crew_count")
     private int crewCount;
+    @Column(name = "departed_at")
     private Instant departedAt;
+    @Column(name = "eta_return")
     private Instant etaReturn;
 
     @Enumerated(EnumType.STRING)
     private TripStatus status;
 
+    @Column(name = "overdue_at")
     private Instant overdueAt;
+    @Column(name = "alerted_at")
     private Instant alertedAt;
 
     @Version

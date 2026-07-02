@@ -1,5 +1,6 @@
 package ee.voyagelog.skipper;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,10 +17,13 @@ public class Vessel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "skipper_id")
     private Long skipperId;
     private String name;
     private String type;
+    @Column(name = "length_m")
     private BigDecimal lengthM;
+    @Column(name = "sail_number")
     private String sailNumber;
 
     protected Vessel() {

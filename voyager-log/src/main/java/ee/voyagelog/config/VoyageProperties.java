@@ -5,8 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 
 /**
- * grace-period — сколько ждём после ETA, прежде чем считать рейс просроченным;
- * alert-delay — сколько ждём ответа шкипера, прежде чем поднимать тревогу контакту.
+ * grace-period: how long to wait after ETA before marking a trip overdue;
+ * alert-delay: how long to wait for the skipper before alerting a contact.
  */
 @ConfigurationProperties(prefix = "voyage")
 public record VoyageProperties(Duration gracePeriod, Duration alertDelay, String publicBaseUrl) {

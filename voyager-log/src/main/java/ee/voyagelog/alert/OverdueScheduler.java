@@ -14,9 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 
 /**
- * Ядро safety-логики:
- *   AT_SEA  + (eta_return + grace) < now  -> OVERDUE, пингуем шкипера
- *   OVERDUE + (overdue_at + delay) < now  -> ALERTED, тревога контактам
+ * Core safety logic:
+ *   AT_SEA  + (eta_return + grace) < now  -> OVERDUE, ping the skipper
+ *   OVERDUE + (overdue_at + delay) < now  -> ALERTED, notify contacts
  */
 @Component
 public class OverdueScheduler {

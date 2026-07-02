@@ -1,5 +1,5 @@
--- Стартовый справочник гаваней Таллинского залива и окрестностей.
--- Глубины/каналы/цены заполнить актуальными данными из lodbooks / сайтов гаваней.
+-- Initial harbour directory for Tallinn Bay and nearby waters.
+-- Depths, channels, and prices should be filled with current data from lodbooks / harbour websites.
 insert into harbour (name, lat, lon, vhf_channel, depth_m, price_note)
 values ('Pirita (Kalevi Jahtklubi)', 59.4672, 24.8303, null, null, null),
        ('Lennusadam (Tallinn)',      59.4519, 24.7383, null, null, null),

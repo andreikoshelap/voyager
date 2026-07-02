@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Тонкая обёртка над Bot API без сторонних библиотек — RestClient достаточно.
+ * Thin Bot API wrapper without third-party libraries; RestClient is enough.
  */
 @Component
 public class TelegramClient {

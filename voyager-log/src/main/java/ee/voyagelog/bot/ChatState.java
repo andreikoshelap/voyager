@@ -1,5 +1,6 @@
 package ee.voyagelog.bot;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -11,15 +12,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Состояние многошагового диалога. Telegram stateless, поэтому текущий шаг
- * визарда и накопленные ответы храним здесь (payload -> jsonb).
- * TODO: задействовать в FSM-визарде /sail (фаза 2).
+ * Multi-step dialog state. Telegram is stateless, so the current wizard step
+ * and collected answers are stored here (payload -> jsonb).
+ * TODO: use this in the /sail FSM wizard (phase 2).
  */
 @Entity
 @Table(name = "chat_state")
 public class ChatState {
 
     @Id
+    @Column(name = "chat_id")
     private Long chatId;
 
     private String state;
@@ -27,6 +29,7 @@ public class ChatState {
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> payload = new HashMap<>();
 
+    @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 
     protected ChatState() {

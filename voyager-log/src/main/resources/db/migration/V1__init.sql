@@ -53,7 +53,7 @@ create table trip (
 create index idx_trip_status_eta on trip (status, eta_return);
 create index idx_trip_status_overdue on trip (status, overdue_at);
 
--- состояние многошагового диалога (FSM), Telegram сам по себе stateless
+-- Multi-step dialog state (FSM); Telegram itself is stateless
 create table chat_state (
     chat_id    bigint primary key,
     state      text        not null,
@@ -61,7 +61,7 @@ create table chat_state (
     updated_at timestamptz not null default now()
 );
 
--- служебная таблица ShedLock
+-- ShedLock housekeeping table
 create table shedlock (
     name       varchar(64) primary key,
     lock_until timestamptz  not null,

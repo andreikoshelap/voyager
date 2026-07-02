@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Локальная разработка без HTTPS: long polling вместо webhook.
- * Не забудь снять webhook (deleteWebhook), иначе getUpdates вернёт 409.
+ * Local development without HTTPS: long polling instead of webhook.
+ * Remember to remove the webhook (deleteWebhook), otherwise getUpdates returns 409.
  */
 @Component
 @Profile("local")

@@ -20,10 +20,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 /**
- * Роутер команд. MVP-версия /sail принимает всё одной строкой:
- *   /sail Kelnase 6      -> иду в Kelnase, вернусь через 6 часов
- *   /sail Aegna 4 3      -> Aegna, 4 часа, экипаж 3
- * TODO фаза 2: пошаговый визард на ChatState (гавань кнопками, ETA, экипаж).
+ * Command router. The MVP /sail command accepts everything in one line:
+ *   /sail Kelnase 6      -> sailing to Kelnase, returning in 6 hours
+ *   /sail Aegna 4 3      -> Aegna, 4 hours, crew of 3
+ * TODO phase 2: step-by-step ChatState wizard (harbour buttons, ETA, crew).
  */
 @Service
 public class UpdateDispatcher {
