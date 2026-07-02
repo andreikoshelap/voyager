@@ -1,0 +1,44 @@
+<div class="panel">
+  <header class="panel__header">
+    <span class="panel__eyebrow">voyage-log · Tallinn bay</span>
+    <span class="panel__badge">{{ atSeaCount() }} boats at sea</span>
+  </header>
+
+  @if (harbourStore.selected(); as h) {
+    <div class="panel__body">
+      <h2 class="panel__name">{{ h.name }}</h2>
+
+      <dl class="panel__facts">
+        <div class="panel__fact">
+          <dt>Depth</dt>
+          <dd class="data">{{ h.depthM ?? '—' }} m</dd>
+        </div>
+        <div class="panel__fact">
+          <dt>VHF</dt>
+          <dd class="data">{{ h.vhfChannel ?? '—' }}</dd>
+        </div>
+        <div class="panel__fact">
+          <dt>Price</dt>
+          <dd class="data">{{ h.priceNote ?? '—' }}</dd>
+        </div>
+        <div class="panel__fact">
+          <dt>Berths</dt>
+          <dd class="data" [class.data--ok]="h.hasHost" [class.data--muted]="!h.hasHost">
+            {{ h.hasHost ? 'ask via bot' : 'no host yet' }}
+          </dd>
+        </div>
+      </dl>
+
+      <div class="panel__actions">
+        <a class="btn btn--primary" [href]="requestBerthUrl()" target="_blank" rel="noopener">
+          Request a berth ↗
+        </a>
+        <a class="btn" [href]="sailHereUrl()" target="_blank" rel="noopener">Log a trip here ↗</a>
+      </div>
+    </div>
+  } @else if (harbourStore.loading()) {
+    <p class="panel__hint">Loading harbours…</p>
+  } @else {
+    <p class="panel__hint">Pick a harbour on the chart.</p>
+  }
+</div>

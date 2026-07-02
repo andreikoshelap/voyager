@@ -64,7 +64,7 @@ public class Trip {
 
     public void markOverdue(Instant now) {
         if (status != TripStatus.AT_SEA) {
-            throw new IllegalStateException("Только AT_SEA может стать OVERDUE, сейчас: " + status);
+            throw new IllegalStateException("Only AT_SEA can become OVERDUE, current status: " + status);
         }
         this.status = TripStatus.OVERDUE;
         this.overdueAt = now;
@@ -72,7 +72,7 @@ public class Trip {
 
     public void markAlerted(Instant now) {
         if (status != TripStatus.OVERDUE) {
-            throw new IllegalStateException("Только OVERDUE может стать ALERTED, сейчас: " + status);
+            throw new IllegalStateException("Only OVERDUE can become ALERTED, current status: " + status);
         }
         this.status = TripStatus.ALERTED;
         this.alertedAt = now;
@@ -80,7 +80,7 @@ public class Trip {
 
     private void requireActive() {
         if (!isActive()) {
-            throw new IllegalStateException("Рейс не активен: " + status);
+            throw new IllegalStateException("Trip is not active: " + status);
         }
     }
 

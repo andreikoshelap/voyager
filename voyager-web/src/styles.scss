@@ -1,0 +1,43 @@
+:root {
+  --chart-navy: #0b2233;
+  --chart-navy-light: #123048;
+  --chart-paper: #f3eedd;
+  --chart-paper-dim: #e6dfc8;
+  --chart-ink: #1c2b33;
+  --chart-ink-muted: #5c6b73;
+  --chart-amber: #d9a441;
+  --chart-teal: #2f6f62;
+  --chart-coral: #c1502e;
+  --font-ui: 'IBM Plex Sans', sans-serif;
+  --font-data: 'IBM Plex Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font-ui);
+  background: var(--chart-navy);
+  color: var(--chart-paper);
+}
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--chart-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -36,8 +36,8 @@ public class TelegramNotifier implements NotificationPort {
     public void pingSkipperOverdue(Trip trip) {
         skippers.findById(trip.getSkipperId()).ifPresent(skipper ->
                 telegram.sendMessage(skipper.getTelegramChatId(), """
-                        Рейс №%d просрочен (ETA был %s).
-                        Ты на берегу? Ответь /back — иначе скоро уведомлю твоё контактное лицо.
+                        Trip #%d is overdue (ETA was %s).
+                        Are you ashore? Reply with /back - otherwise your emergency contact will be notified soon.
                         """.formatted(trip.getId(), TIME.format(trip.getEtaReturn()))));
     }
 
@@ -48,15 +48,15 @@ public class TelegramNotifier implements NotificationPort {
             return;
         }
         String alert = """
-                ТРЕВОГА: %s не вернулся из рейса и не отвечает.
-                Куда шёл: %s
-                Вышел: %s, ETA возвращения: %s
-                Экипаж: %d
-                Телефон шкипера: %s
-                Если связаться не удаётся — звони в Морской спасательный центр (JRCC Tallinn): 619 1224.
+                ALERT: %s has not returned from the trip and is not responding.
+                Destination: %s
+                Departed: %s, return ETA: %s
+                Crew: %d
+                Skipper phone: %s
+                If contact cannot be established, call the Maritime Rescue Coordination Centre (JRCC Tallinn): 619 1224.
                 """.formatted(skipper.getName(), trip.getDestination(),
                 TIME.format(trip.getDepartedAt()), TIME.format(trip.getEtaReturn()),
-                trip.getCrewCount(), skipper.getPhone() == null ? "—" : skipper.getPhone());
+                trip.getCrewCount(), skipper.getPhone() == null ? "-" : skipper.getPhone());
 
         var reachable = contacts.findBySkipperId(skipper.getId()).stream()
                 .filter(c -> c.getTelegramChatId() != null)

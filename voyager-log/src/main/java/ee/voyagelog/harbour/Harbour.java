@@ -40,7 +40,13 @@ public class Harbour {
     public String getName() {
         return name;
     }
+    public Double getLat() {
+        return lat;
+    }
 
+    public Double getLon() {
+        return lon;
+    }
     public String getVhfChannel() {
         return vhfChannel;
     }

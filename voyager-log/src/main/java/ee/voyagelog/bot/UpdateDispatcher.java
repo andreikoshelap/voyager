@@ -67,13 +67,13 @@ public class UpdateDispatcher {
                 handleHarbour(chatId, text);
             } else {
                 telegram.sendMessage(chatId,
-                        "Команды: /sail <куда> <часов> [экипаж], /back, /status, /harbour <название>");
+                        "Commands: /sail <destination> <hours> [crew], /back, /status, /harbour <name>");
             }
         } catch (IllegalStateException | IllegalArgumentException e) {
             telegram.sendMessage(chatId, e.getMessage());
         } catch (Exception e) {
             log.error("Failed to handle update for chat {}", chatId, e);
-            telegram.sendMessage(chatId, "Что-то пошло не так, попробуй ещё раз.");
+            telegram.sendMessage(chatId, "Something went wrong, please try again.");
         }
     }
 
@@ -81,18 +81,18 @@ public class UpdateDispatcher {
         Skipper skipper = skippers.findByTelegramChatId(chatId)
                 .orElseGet(() -> {
                     String name = msg.from() != null && msg.from().firstName() != null
-                            ? msg.from().firstName() : "Шкипер";
+                            ? msg.from().firstName() : "Skipper";
                     return skippers.save(new Skipper(chatId, name));
                 });
         telegram.sendMessage(chatId, """
-                Привет, %s! Это судовой журнал выходов в море.
+                Hello, %s! This is a voyage log for sea trips.
 
-                /sail Kelnase 6 — регистрирую выход: иду в Kelnase, вернусь через 6 часов
-                /back — я на берегу, рейс закрыт
-                /status — активный рейс
-                /harbour Aegna — справка по гавани
+                /sail Kelnase 6 - register a trip to Kelnase, returning in 6 hours
+                /back - I am ashore, close the trip
+                /status - active trip
+                /harbour Aegna - harbour details
 
-                Если не вернёшься вовремя и не ответишь на пинг — твоему контактному лицу уйдёт тревога.
+                If you do not return on time and do not answer the ping, your emergency contact will be alerted.
                 """.formatted(skipper.getName()));
     }
 
@@ -100,7 +100,7 @@ public class UpdateDispatcher {
         Skipper skipper = requireSkipper(chatId);
         String[] parts = text.split("\\s+");
         if (parts.length < 3) {
-            throw new IllegalArgumentException("Формат: /sail <куда> <часов> [экипаж], например: /sail Kelnase 6 2");
+            throw new IllegalArgumentException("Format: /sail <destination> <hours> [crew], for example: /sail Kelnase 6 2");
         }
         int crew = 1;
         int hoursIdx = parts.length - 1;
@@ -109,7 +109,7 @@ public class UpdateDispatcher {
             hoursIdx = parts.length - 2;
         }
         if (!isInt(parts[hoursIdx])) {
-            throw new IllegalArgumentException("Не понял, через сколько часов вернёшься. Пример: /sail Kelnase 6");
+            throw new IllegalArgumentException("Could not parse return time in hours. Example: /sail Kelnase 6");
         }
         int hours = Integer.parseInt(parts[hoursIdx]);
         String destination = String.join(" ", java.util.Arrays.copyOfRange(parts, 1, hoursIdx));
@@ -117,11 +117,11 @@ public class UpdateDispatcher {
         Instant eta = Instant.now().plus(Duration.ofHours(hours));
         Trip trip = tripService.startTrip(skipper.getId(), destination, crew, eta);
         telegram.sendMessage(chatId, """
-                Рейс №%d зарегистрирован.
-                Куда: %s
-                Экипаж: %d
-                ETA возвращения: %s
-                Семь футов под килем! Не забудь /back на берегу.
+                Trip #%d registered.
+                Destination: %s
+                Crew: %d
+                Return ETA: %s
+                Fair winds. Remember to send /back when ashore.
                 """.formatted(trip.getId(), trip.getDestination(), trip.getCrewCount(),
                 TIME.format(trip.getEtaReturn())));
     }
@@ -130,40 +130,40 @@ public class UpdateDispatcher {
         Skipper skipper = requireSkipper(chatId);
         Optional<Trip> closed = tripService.checkIn(skipper.getId());
         telegram.sendMessage(chatId, closed
-                .map(t -> "Рейс №" + t.getId() + " закрыт. С возвращением!")
-                .orElse("Активного рейса нет."));
+                .map(t -> "Trip #" + t.getId() + " closed. Welcome back!")
+                .orElse("No active trip."));
     }
 
     private void handleStatus(long chatId) {
         Skipper skipper = requireSkipper(chatId);
         telegram.sendMessage(chatId, tripService.activeTrip(skipper.getId())
-                .map(t -> "Рейс №%d: %s, статус %s, ETA %s".formatted(
+                .map(t -> "Trip #%d: %s, status %s, ETA %s".formatted(
                         t.getId(), t.getDestination(), t.getStatus(), TIME.format(t.getEtaReturn())))
-                .orElse("Активного рейса нет."));
+                .orElse("No active trip."));
     }
 
     private void handleHarbour(long chatId, String text) {
         String query = text.replaceFirst("/harbour", "").trim();
         if (query.isEmpty()) {
-            throw new IllegalArgumentException("Формат: /harbour <название>, например: /harbour Kelnase");
+            throw new IllegalArgumentException("Format: /harbour <name>, for example: /harbour Kelnase");
         }
         Optional<Harbour> found = harbours.findFirstByNameIgnoreCaseContaining(query);
         telegram.sendMessage(chatId, found
                 .map(h -> """
                         %s
-                        Глубина: %s
+                        Depth: %s
                         VHF: %s
-                        Телефон: %s
-                        Цена: %s
+                        Phone: %s
+                        Price: %s
                         """.formatted(h.getName(),
                         orDash(h.getDepthM()), orDash(h.getVhfChannel()),
                         orDash(h.getPhone()), orDash(h.getPriceNote())))
-                .orElse("Гавань не нашёл. Попробуй /harbour Pirita"));
+                .orElse("Harbour not found. Try /harbour Pirita"));
     }
 
     private Skipper requireSkipper(long chatId) {
         return skippers.findByTelegramChatId(chatId)
-                .orElseThrow(() -> new IllegalStateException("Сначала /start"));
+                .orElseThrow(() -> new IllegalStateException("Send /start first"));
     }
 
     private static boolean isInt(String s) {
@@ -176,6 +176,6 @@ public class UpdateDispatcher {
     }
 
     private static String orDash(Object value) {
-        return value == null ? "—" : value.toString();
+        return value == null ? "-" : value.toString();
     }
 }

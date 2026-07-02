@@ -14,4 +14,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     List<Trip> findByStatusAndEtaReturnBefore(TripStatus status, Instant cutoff);
 
     List<Trip> findByStatusAndOverdueAtBefore(TripStatus status, Instant cutoff);
+
+    List<Trip> findByStatusIn(Collection<TripStatus> statuses);
 }

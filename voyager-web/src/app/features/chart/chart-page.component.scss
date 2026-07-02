@@ -1,0 +1,25 @@
+.chart-page {
+  position: relative;
+  height: 100dvh;
+  width: 100%;
+}
+
+.chart-page__map {
+  position: absolute;
+  inset: 0;
+}
+
+.chart-page__panel {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .chart-page__panel {
+    left: 0.5rem;
+    right: 0.5rem;
+    top: 0.5rem;
+  }
+}

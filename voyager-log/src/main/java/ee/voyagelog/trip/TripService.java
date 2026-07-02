@@ -7,6 +7,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Provides activeTrips() for GET /api/trips/active.
+ */
 @Service
 public class TripService {
 
@@ -23,7 +26,7 @@ public class TripService {
     public Trip startTrip(Long skipperId, String destination, int crewCount, Instant etaReturn) {
         trips.findFirstBySkipperIdAndStatusIn(skipperId, ACTIVE_STATUSES).ifPresent(active -> {
             throw new IllegalStateException(
-                    "Уже есть активный рейс на " + active.getDestination() + ". Сначала /back.");
+                    "There is already an active trip to " + active.getDestination() + ". Send /back first.");
         });
         return trips.save(new Trip(skipperId, destination, crewCount, etaReturn));
     }
@@ -40,5 +43,10 @@ public class TripService {
     @Transactional(readOnly = true)
     public Optional<Trip> activeTrip(Long skipperId) {
         return trips.findFirstBySkipperIdAndStatusIn(skipperId, ACTIVE_STATUSES);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Trip> activeTrips() {
+        return trips.findByStatusIn(ACTIVE_STATUSES);
     }
 }
