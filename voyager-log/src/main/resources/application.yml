@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: voyage-log
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/voyagelog}
+    username: ${DB_USER:voyagelog}
+    password: ${DB_PASSWORD:voyagelog}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+telegram:
+  token: ${TELEGRAM_BOT_TOKEN:}
+  webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:change-me}
+
+voyage:
+  grace-period: PT45M
+  alert-delay: PT30M
+  public-base-url: ${PUBLIC_BASE_URL:https://voyage.gatto-piccolo.com}
+
+server:
+  port: 8080

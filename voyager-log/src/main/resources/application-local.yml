@@ -1,0 +1,6 @@
+# local: long polling вместо webhook, удобно дебажить без HTTPS-туннеля.
+# Перед запуском один раз сними webhook:
+#   curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"
+voyage:
+  grace-period: PT2M
+  alert-delay: PT1M
