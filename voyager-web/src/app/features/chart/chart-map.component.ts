@@ -55,9 +55,23 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
     });
 
     effect(() => {
-      // trips don't render a shape yet in this skeleton — count is surfaced
-      // in the panel; a dedicated boat layer is a natural next step.
-      this.tripStore.activeTrips();
+      const activeTrips = this.tripStore.activeTrips();
+      const source = this.map?.getSource('active-trips') as GeoJSONSource | undefined;
+      source?.setData({
+        type: 'FeatureCollection',
+        features: activeTrips
+          .filter((t) => t.destinationLat != null && t.destinationLon != null)
+          .map((t) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [t.destinationLon!, t.destinationLat!] },
+            properties: {
+              id: t.id,
+              destination: t.destination,
+              status: t.status,
+              crewCount: t.crewCount,
+            },
+          })),
+      });
     });
   }
 
@@ -74,6 +88,7 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
     this.map.on('load', () => {
       const map = this.map!;
       map.addSource('harbours', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('active-trips', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
       map.addLayer({
         id: 'harbour-points',
@@ -102,6 +117,27 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
           'text-color': '#f3eedd',
           'text-halo-color': '#0b2233',
           'text-halo-width': 1.2,
+        },
+      });
+
+      map.addLayer({
+        id: 'active-trip-points',
+        type: 'circle',
+        source: 'active-trips',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': [
+            'match',
+            ['get', 'status'],
+            'OVERDUE',
+            '#d44d3a',
+            'ALERTED',
+            '#ff2d2d',
+            '#35a7ff',
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-translate': [0, -16],
         },
       });
 
