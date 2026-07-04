@@ -9,7 +9,11 @@ import java.util.Optional;
 
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
-    Optional<Trip> findFirstBySkipperIdAndStatusIn(Long skipperId, Collection<TripStatus> statuses);
+    Optional<Trip> findFirstBySkipperIdAndStatusInOrderByDepartedAtDesc(Long skipperId, Collection<TripStatus> statuses);
+
+    Optional<Trip> findByIdAndSkipperIdAndStatusIn(Long id, Long skipperId, Collection<TripStatus> statuses);
+
+    List<Trip> findBySkipperIdAndStatusInOrderByDepartedAtDesc(Long skipperId, Collection<TripStatus> statuses);
 
     List<Trip> findByStatusAndEtaReturnBefore(TripStatus status, Instant cutoff);
 

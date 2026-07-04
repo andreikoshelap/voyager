@@ -21,8 +21,10 @@ public class HarbourController {
     }
 
     /**
-     * GeoJSON FeatureCollection that MapLibre/Leaflet can consume directly.
-     * hasHost means the harbour has a bot host, so a berth can be requested.
+     * GeoJSON FeatureCollection consumed directly by MapLibre/Leaflet.
+     * UPDATED: properties now include the V4 registry fields (harbourCode,
+     * address, website, amenities) so the frontend can surface them without
+     * a second request per harbor.
      */
     @GetMapping
     public GeoJson.FeatureCollection all() {
@@ -37,6 +39,12 @@ public class HarbourController {
                     props.put("depthM", h.getDepthM());
                     props.put("priceNote", h.getPriceNote());
                     props.put("hasHost", h.getTelegramChatId() != null);
+                    props.put("harbourCode", h.getHarbourCode());
+                    props.put("address", h.getAddress());
+                    props.put("website", h.getWebsite());
+                    props.put("email", h.getEmail());
+                    props.put("amenities", h.getAmenities());
+                    props.put("sourceUrl", h.getSourceUrl());
                     return GeoJson.Feature.point(h.getLon(), h.getLat(), props);
                 })
                 .toList();

@@ -21,10 +21,6 @@ public class TripService {
 
     @Transactional
     public Trip startTrip(StartTripCommand cmd) {
-        trips.findFirstBySkipperIdAndStatusIn(cmd.skipperId(), ACTIVE_STATUSES).ifPresent(active -> {
-            throw new IllegalStateException(
-                    "Уже есть активный рейс: " + active.getDestination() + ". Сначала /back.");
-        });
         Trip trip = new Trip(cmd.skipperId(), cmd.departureHarbourId(), cmd.destinationHarbourId(),
                 cmd.destinationLabel(), cmd.markerLat(), cmd.markerLon(), cmd.locationConfidence(),
                 cmd.crewCount(), cmd.etaReturn());
@@ -33,7 +29,16 @@ public class TripService {
 
     @Transactional
     public Optional<Trip> checkIn(Long skipperId) {
-        return trips.findFirstBySkipperIdAndStatusIn(skipperId, ACTIVE_STATUSES)
+        return trips.findFirstBySkipperIdAndStatusInOrderByDepartedAtDesc(skipperId, ACTIVE_STATUSES)
+                .map(trip -> {
+                    trip.complete();
+                    return trip;
+                });
+    }
+
+    @Transactional
+    public Optional<Trip> checkIn(Long skipperId, Long tripId) {
+        return trips.findByIdAndSkipperIdAndStatusIn(tripId, skipperId, ACTIVE_STATUSES)
                 .map(trip -> {
                     trip.complete();
                     return trip;
@@ -42,7 +47,17 @@ public class TripService {
 
     @Transactional(readOnly = true)
     public Optional<Trip> activeTrip(Long skipperId) {
-        return trips.findFirstBySkipperIdAndStatusIn(skipperId, ACTIVE_STATUSES);
+        return trips.findFirstBySkipperIdAndStatusInOrderByDepartedAtDesc(skipperId, ACTIVE_STATUSES);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Trip> activeTrip(Long skipperId, Long tripId) {
+        return trips.findByIdAndSkipperIdAndStatusIn(tripId, skipperId, ACTIVE_STATUSES);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Trip> activeTrips(Long skipperId) {
+        return trips.findBySkipperIdAndStatusInOrderByDepartedAtDesc(skipperId, ACTIVE_STATUSES);
     }
 
     @Transactional(readOnly = true)
