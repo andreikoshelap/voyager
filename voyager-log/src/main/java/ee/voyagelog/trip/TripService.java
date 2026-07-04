@@ -3,13 +3,10 @@ package ee.voyagelog.trip;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Provides activeTrips() for GET /api/trips/active.
- */
+/** UPDATED: startTrip now takes a StartTripCommand — see that record for field docs. */
 @Service
 public class TripService {
 
@@ -23,12 +20,15 @@ public class TripService {
     }
 
     @Transactional
-    public Trip startTrip(Long skipperId, String destination, int crewCount, Instant etaReturn) {
-        trips.findFirstBySkipperIdAndStatusIn(skipperId, ACTIVE_STATUSES).ifPresent(active -> {
+    public Trip startTrip(StartTripCommand cmd) {
+        trips.findFirstBySkipperIdAndStatusIn(cmd.skipperId(), ACTIVE_STATUSES).ifPresent(active -> {
             throw new IllegalStateException(
-                    "There is already an active trip to " + active.getDestination() + ". Send /back first.");
+                    "Уже есть активный рейс: " + active.getDestination() + ". Сначала /back.");
         });
-        return trips.save(new Trip(skipperId, destination, crewCount, etaReturn));
+        Trip trip = new Trip(cmd.skipperId(), cmd.departureHarbourId(), cmd.destinationHarbourId(),
+                cmd.destinationLabel(), cmd.markerLat(), cmd.markerLon(), cmd.locationConfidence(),
+                cmd.crewCount(), cmd.etaReturn());
+        return trips.save(trip);
     }
 
     @Transactional

@@ -1,17 +1,24 @@
 package ee.voyagelog.trip;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.time.Instant;
 
+/**
+ * UPDATED: added destinationHarbourId (set only on a CONFIRMED match),
+ * markerLat/markerLon (always populated for new trips — either the matched
+ * harbour's coordinates or a GeoUtil-computed offshore point), and
+ * locationConfidence. Nullable in the DB so pre-existing test rows from
+ * before this migration don't need a backfill guess.
+ */
 @Entity
 @Table(name = "trip")
 public class Trip {
@@ -26,7 +33,18 @@ public class Trip {
     private Long vesselId;
     @Column(name = "departure_harbour_id")
     private Long departureHarbourId;
+    @Column(name = "destination_harbour_id")
+    private Long destinationHarbourId;
     private String destination;
+    @Column(name = "marker_lat")
+    private Double markerLat;
+    @Column(name = "marker_lon")
+    private Double markerLon;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "location_confidence")
+    private LocationConfidence locationConfidence;
+
     @Column(name = "crew_count")
     private int crewCount;
     @Column(name = "departed_at")
@@ -48,9 +66,16 @@ public class Trip {
     protected Trip() {
     }
 
-    public Trip(Long skipperId, String destination, int crewCount, Instant etaReturn) {
+    public Trip(Long skipperId, Long departureHarbourId, Long destinationHarbourId, String destinationLabel,
+                double markerLat, double markerLon, LocationConfidence locationConfidence,
+                int crewCount, Instant etaReturn) {
         this.skipperId = skipperId;
-        this.destination = destination;
+        this.departureHarbourId = departureHarbourId;
+        this.destinationHarbourId = destinationHarbourId;
+        this.destination = destinationLabel;
+        this.markerLat = markerLat;
+        this.markerLon = markerLon;
+        this.locationConfidence = locationConfidence;
         this.crewCount = crewCount;
         this.departedAt = Instant.now();
         this.etaReturn = etaReturn;
@@ -64,7 +89,7 @@ public class Trip {
 
     public void markOverdue(Instant now) {
         if (status != TripStatus.AT_SEA) {
-            throw new IllegalStateException("Only AT_SEA can become OVERDUE, current status: " + status);
+            throw new IllegalStateException("Only AT_SEA can become OVERDUE, currently: " + status);
         }
         this.status = TripStatus.OVERDUE;
         this.overdueAt = now;
@@ -72,7 +97,7 @@ public class Trip {
 
     public void markAlerted(Instant now) {
         if (status != TripStatus.OVERDUE) {
-            throw new IllegalStateException("Only OVERDUE can become ALERTED, current status: " + status);
+            throw new IllegalStateException("Only OVERDUE can become ALERTED, currently: " + status);
         }
         this.status = TripStatus.ALERTED;
         this.alertedAt = now;
@@ -96,8 +121,28 @@ public class Trip {
         return skipperId;
     }
 
+    public Long getDepartureHarbourId() {
+        return departureHarbourId;
+    }
+
+    public Long getDestinationHarbourId() {
+        return destinationHarbourId;
+    }
+
     public String getDestination() {
         return destination;
+    }
+
+    public Double getMarkerLat() {
+        return markerLat;
+    }
+
+    public Double getMarkerLon() {
+        return markerLon;
+    }
+
+    public LocationConfidence getLocationConfidence() {
+        return locationConfidence;
     }
 
     public int getCrewCount() {

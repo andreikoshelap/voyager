@@ -41,4 +41,21 @@
   } @else {
     <p class="panel__hint">Pick a harbour on the chart.</p>
   }
+
+  @if (tripStore.activeTrips().length > 0) {
+    <div class="panel__trips">
+      <span class="panel__eyebrow">At sea now</span>
+      <ul class="panel__trip-list">
+        @for (trip of tripStore.activeTrips(); track trip.id) {
+          <li class="panel__trip" [class.panel__trip--alarm]="trip.status === 'OVERDUE' || trip.status === 'ALERTED'">
+            <span class="panel__trip-dest">
+              {{ departureName(trip.departureHarbourId) }} →
+              {{ trip.locationConfidence === 'APPROXIMATE' ? '≈ ' : '' }}{{ trip.destination }}
+            </span>
+            <span class="data panel__trip-eta">ETA {{ etaLabel(trip.etaReturn) }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
 </div>

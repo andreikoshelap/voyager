@@ -1,14 +1,20 @@
 package ee.voyagelog.harbour;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 
+/**
+ * UPDATED: added seawardBearingDeg — a rough, manually-eyeballed bearing
+ * (degrees) toward open water, used only as the fallback direction for an
+ * APPROXIMATE trip marker when no destination was given or resolved. Not
+ * surveyed data, see V3 migration comment.
+ */
 @Entity
 @Table(name = "harbour")
 public class Harbour {
@@ -29,6 +35,8 @@ public class Harbour {
     private BigDecimal depthM;
     @Column(name = "price_note")
     private String priceNote;
+    @Column(name = "seaward_bearing_deg")
+    private Integer seawardBearingDeg;
 
     protected Harbour() {
     }
@@ -40,6 +48,7 @@ public class Harbour {
     public String getName() {
         return name;
     }
+
     public Double getLat() {
         return lat;
     }
@@ -47,6 +56,7 @@ public class Harbour {
     public Double getLon() {
         return lon;
     }
+
     public String getVhfChannel() {
         return vhfChannel;
     }
@@ -65,5 +75,9 @@ public class Harbour {
 
     public String getPriceNote() {
         return priceNote;
+    }
+
+    public Integer getSeawardBearingDeg() {
+        return seawardBearingDeg;
     }
 }

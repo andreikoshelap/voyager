@@ -4,8 +4,10 @@ import { HarbourStore } from '../../state/harbour.store';
 import { TripStore } from '../../state/trip.store';
 
 /**
- * Reads HarbourStore.selected() directly — no @Input wiring to the map
- * component, both sit on the same store.
+ * UPDATED: trip list now shows the departure harbour name (looked up
+ * client-side from HarbourStore by departureHarbourId) and marks
+ * APPROXIMATE trips with a "≈" prefix on the destination label, matching
+ * the dashed marker style on the map.
  */
 @Component({
   selector: 'vl-harbour-panel',
@@ -29,5 +31,15 @@ export class HarbourPanelComponent {
   protected sailHereUrl(): string {
     const h = this.harbourStore.selected();
     return `https://t.me/${environment.telegramBotUsername}?start=sail_${h?.id ?? ''}`;
+  }
+
+  protected etaLabel(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  protected departureName(harbourId: number | null): string {
+    if (harbourId == null) return 'unknown harbour';
+    return this.harbourStore.harbours().find((h) => h.id === harbourId)?.name ?? 'unknown harbour';
   }
 }

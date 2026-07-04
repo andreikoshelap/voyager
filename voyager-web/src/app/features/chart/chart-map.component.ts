@@ -1,7 +1,17 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, effect, inject, viewChild } from '@angular/core';
-import maplibregl, { GeoJSONSource, Map as MlMap, MapLayerMouseEvent } from 'maplibre-gl';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewEncapsulation,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
+import maplibregl, { GeoJSONSource, Map as MlMap, MapLayerMouseEvent, Marker } from 'maplibre-gl';
 import { HarbourStore } from '../../state/harbour.store';
 import { TripStore } from '../../state/trip.store';
+import { ActiveTrip } from '../../core/models/trip.model';
 
 const TALLINN_BAY: [number, number] = [24.75, 59.48];
 
@@ -10,12 +20,20 @@ const TALLINN_BAY: [number, number] = [24.75, 59.48];
  * runs with zero API keys out of the box — swap `rasterStyle()` for a
  * MapTiler vector style (see README) once you have a key, no other changes
  * needed since harbours/trips are wired through GeoJSON sources.
+ *
+ * UPDATED: trip markers now plot backend-computed markerLat/markerLon
+ * directly — no more client-side lookup against the harbour list. A
+ * CONFIRMED trip sits exactly on its destination harbour; an APPROXIMATE
+ * one sits at a computed point ~1 nm off the departure harbour, styled
+ * with a dashed halo so it visibly reads as "somewhere out here", not a
+ * precise position — we don't collect GPS, so we never claim one.
  */
 @Component({
   selector: 'vl-chart-map',
   standalone: true,
   template: `<div class="map-host" #host></div>`,
   styleUrl: './chart-map.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class ChartMapComponent implements AfterViewInit, OnDestroy {
   private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('host');
@@ -23,11 +41,9 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
   private readonly tripStore = inject(TripStore);
 
   private map: MlMap | null = null;
+  private readonly pulseMarkers = new Map<number, Marker>();
 
   constructor() {
-    // Push harbours/trips into the map's GeoJSON sources whenever the
-    // stores change — sources are created once in ngAfterViewInit, this
-    // effect only ever calls setData() on them.
     effect(() => {
       const harbours = this.harbourStore.harbours();
       const source = this.map?.getSource('harbours') as GeoJSONSource | undefined;
@@ -55,23 +71,11 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
     });
 
     effect(() => {
-      const activeTrips = this.tripStore.activeTrips();
+      const trips = this.tripStore.activeTrips();
       const source = this.map?.getSource('active-trips') as GeoJSONSource | undefined;
-      source?.setData({
-        type: 'FeatureCollection',
-        features: activeTrips
-          .filter((t) => t.destinationLat != null && t.destinationLon != null)
-          .map((t) => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [t.destinationLon!, t.destinationLat!] },
-            properties: {
-              id: t.id,
-              destination: t.destination,
-              status: t.status,
-              crewCount: t.crewCount,
-            },
-          })),
-      });
+      source?.setData(this.activeTripsGeoJson(trips));
+      if (!this.map) return;
+      this.syncPulseMarkers(trips);
     });
   }
 
@@ -88,7 +92,7 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
     this.map.on('load', () => {
       const map = this.map!;
       map.addSource('harbours', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      map.addSource('active-trips', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addSource('active-trips', { type: 'geojson', data: this.activeTripsGeoJson(this.tripStore.activeTrips()) });
 
       map.addLayer({
         id: 'harbour-points',
@@ -103,41 +107,22 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
       });
 
       map.addLayer({
-        id: 'harbour-labels',
-        type: 'symbol',
-        source: 'harbours',
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-font': ['Noto Sans Regular'],
-          'text-size': 12,
-          'text-offset': [0, 1.4],
-          'text-anchor': 'top',
-        },
-        paint: {
-          'text-color': '#f3eedd',
-          'text-halo-color': '#0b2233',
-          'text-halo-width': 1.2,
-        },
-      });
-
-      map.addLayer({
         id: 'active-trip-points',
         type: 'circle',
         source: 'active-trips',
         paint: {
-          'circle-radius': 6,
+          'circle-radius': 7,
           'circle-color': [
             'match',
             ['get', 'status'],
             'OVERDUE',
-            '#d44d3a',
+            '#c1502e',
             'ALERTED',
-            '#ff2d2d',
+            '#c1502e',
             '#35a7ff',
           ],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
-          'circle-translate': [0, -16],
         },
       });
 
@@ -149,11 +134,70 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
       map.on('mouseleave', 'harbour-points', () => (map.getCanvas().style.cursor = ''));
 
       this.harbourStore.load();
+      this.syncPulseMarkers(this.tripStore.activeTrips());
     });
   }
 
   ngOnDestroy(): void {
+    this.pulseMarkers.forEach((m) => m.remove());
     this.map?.remove();
+  }
+
+  /** Reconciles DOM pulse markers with the current active-trip list. */
+  private syncPulseMarkers(trips: ActiveTrip[]): void {
+    const seen = new Set<number>();
+
+    for (const trip of trips) {
+      if (trip.markerLat == null || trip.markerLon == null) continue;
+      seen.add(trip.id);
+
+      const isAlarmed = trip.status === 'OVERDUE' || trip.status === 'ALERTED';
+      const isApprox = trip.locationConfidence === 'APPROXIMATE';
+      let marker = this.pulseMarkers.get(trip.id);
+
+      if (!marker) {
+        const el = document.createElement('div');
+        el.className = 'trip-pulse';
+        marker = new maplibregl.Marker({ element: el })
+          .setLngLat([trip.markerLon, trip.markerLat])
+          .addTo(this.map!);
+        this.pulseMarkers.set(trip.id, marker);
+      } else {
+        marker.setLngLat([trip.markerLon, trip.markerLat]);
+      }
+
+      const el = marker.getElement();
+      el.classList.toggle('trip-pulse--alarm', isAlarmed);
+      el.classList.toggle('trip-pulse--approx', isApprox);
+      el.title = isApprox
+        ? `Approximate area — ${trip.destination}`
+        : `Heading to ${trip.destination}`;
+    }
+
+    for (const [tripId, marker] of this.pulseMarkers) {
+      if (!seen.has(tripId)) {
+        marker.remove();
+        this.pulseMarkers.delete(tripId);
+      }
+    }
+  }
+
+  private activeTripsGeoJson(trips: ActiveTrip[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
+    return {
+      type: 'FeatureCollection',
+      features: trips
+        .filter((trip) => trip.markerLat != null && trip.markerLon != null)
+        .map((trip) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [trip.markerLon!, trip.markerLat!] },
+          properties: {
+            id: trip.id,
+            destination: trip.destination,
+            status: trip.status,
+            locationConfidence: trip.locationConfidence,
+          },
+        })),
+    };
   }
 
   private rasterStyle(): maplibregl.StyleSpecification {
