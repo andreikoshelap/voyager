@@ -13,6 +13,7 @@ public record HarbourResponse(
         String priceNote,
         boolean hasHost,
         String harbourCode,
+        String nickname,
         String address,
         String website,
         String email,
@@ -24,7 +25,7 @@ public record HarbourResponse(
                 h.getId(), h.getName(), h.getLat(), h.getLon(),
                 h.getVhfChannel(), h.getPhone(), h.getDepthM(), h.getPriceNote(),
                 h.getTelegramChatId() != null,
-                h.getHarbourCode(), h.getAddress(), h.getWebsite(), h.getEmail(),
+                h.getHarbourCode(), h.getNickname(), h.getAddress(), h.getWebsite(), h.getEmail(),
                 h.getAmenities(), h.getSourceUrl());
     }
 }

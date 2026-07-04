@@ -39,6 +39,7 @@ public class Harbour {
     @Column(name = "seaward_bearing_deg")
     private Integer seawardBearingDeg;
     private String harbourCode;
+    private String nickname;
     private String address;
     private String website;
     private String email;
@@ -90,6 +91,10 @@ public class Harbour {
 
     public String getHarbourCode() {
         return harbourCode;
+    }
+
+    public String getNickname() {
+        return nickname;
     }
 
     public String getAddress() {

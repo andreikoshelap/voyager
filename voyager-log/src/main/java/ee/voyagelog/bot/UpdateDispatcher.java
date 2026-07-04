@@ -213,7 +213,7 @@ public class UpdateDispatcher {
         int hours = Integer.parseInt(parts[hoursIdx]);
         String typedHarbour = String.join(" ", Arrays.copyOfRange(parts, 1, hoursIdx));
 
-        Harbour departure = harbours.findFirstByNameIgnoreCaseContaining(typedHarbour)
+        Harbour departure = resolveHarbour(typedHarbour)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Не нашёл гавань «" + typedHarbour + "» в справочнике. Проверь /harbour " + typedHarbour
                                 + " или уточни название."));
@@ -271,7 +271,7 @@ public class UpdateDispatcher {
      */
     private TripPlan resolveDestination(Harbour departure, String destinationText) {
         if (destinationText != null && !destinationText.isBlank()) {
-            Optional<Harbour> match = harbours.findFirstByNameIgnoreCaseContaining(destinationText.trim());
+            Optional<Harbour> match = resolveHarbour(destinationText.trim());
             if (match.isPresent()) {
                 Harbour h = match.get();
                 return new TripPlan(h.getId(), h.getName(), h.getLat(), h.getLon(), LocationConfidence.CONFIRMED);
@@ -327,7 +327,7 @@ public class UpdateDispatcher {
         if (query.isEmpty()) {
             throw new IllegalArgumentException("Формат: /harbour <название>, например: /harbour Kelnase");
         }
-        Optional<Harbour> found = harbours.findFirstByNameIgnoreCaseContaining(query);
+        Optional<Harbour> found = resolveHarbour(query);
         telegram.sendMessage(chatId, found
                 .map(h -> """
                         %s
@@ -339,6 +339,40 @@ public class UpdateDispatcher {
                         orDash(h.getDepthM()), orDash(h.getVhfChannel()),
                         orDash(h.getPhone()), orDash(h.getPriceNote())))
                 .orElse("Гавань не нашёл. Попробуй /harbour Pirita"));
+    }
+
+    private Optional<Harbour> resolveHarbour(String query) {
+        String normalized = query.trim();
+        if (normalized.isEmpty()) {
+            return Optional.empty();
+        }
+        String folded = normalized.toLowerCase();
+        var all = harbours.findAll();
+
+        Optional<Harbour> byCode = all.stream()
+                .filter(h -> h.getHarbourCode() != null && h.getHarbourCode().equalsIgnoreCase(normalized))
+                .findFirst();
+        if (byCode.isPresent()) {
+            return byCode;
+        }
+
+        Optional<Harbour> byNickname = all.stream()
+                .filter(h -> h.getNickname() != null && h.getNickname().equalsIgnoreCase(normalized))
+                .findFirst();
+        if (byNickname.isPresent()) {
+            return byNickname;
+        }
+
+        Optional<Harbour> byExactName = all.stream()
+                .filter(h -> h.getName().equalsIgnoreCase(normalized))
+                .findFirst();
+        if (byExactName.isPresent()) {
+            return byExactName;
+        }
+
+        return all.stream()
+                .filter(h -> h.getName().toLowerCase().contains(folded))
+                .findFirst();
     }
 
     private String statusLine(Trip trip) {

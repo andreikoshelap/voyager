@@ -55,6 +55,11 @@
   color: var(--chart-ink);
 }
 
+.panel__nickname {
+  color: var(--chart-teal);
+  font-weight: 600;
+}
+
 .panel__address {
   overflow-wrap: anywhere;
 }

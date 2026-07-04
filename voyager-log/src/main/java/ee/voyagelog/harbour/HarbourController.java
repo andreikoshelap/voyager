@@ -40,6 +40,7 @@ public class HarbourController {
                     props.put("priceNote", h.getPriceNote());
                     props.put("hasHost", h.getTelegramChatId() != null);
                     props.put("harbourCode", h.getHarbourCode());
+                    props.put("nickname", h.getNickname());
                     props.put("address", h.getAddress());
                     props.put("website", h.getWebsite());
                     props.put("email", h.getEmail());

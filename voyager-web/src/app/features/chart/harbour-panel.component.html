@@ -8,10 +8,13 @@
     <div class="panel__body">
       <h2 class="panel__name">{{ h.name }}</h2>
 
-      @if (h.harbourCode || h.address) {
+      @if (h.harbourCode || h.nickname || h.address) {
         <div class="panel__meta">
           @if (h.harbourCode) {
             <span class="panel__code">{{ h.harbourCode }}</span>
+          }
+          @if (h.nickname) {
+            <span class="panel__nickname">{{ h.nickname }}</span>
           }
           @if (h.address) {
             <span class="panel__address">{{ h.address }}</span>
