@@ -12,8 +12,10 @@ import maplibregl, { GeoJSONSource, Map as MlMap, MapLayerMouseEvent, Marker } f
 import { HarbourStore } from '../../state/harbour.store';
 import { TripStore } from '../../state/trip.store';
 import { ActiveTrip } from '../../core/models/trip.model';
+import { Harbour } from '../../core/models/harbour.model';
 
 const TALLINN_BAY: [number, number] = [24.75, 59.48];
+const TRIP_POSITION_UPDATE_MS = 1_000;
 
 /**
  * MapLibre wrapped in a standalone component. Uses raster OSM tiles so it
@@ -41,7 +43,9 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
   private readonly tripStore = inject(TripStore);
 
   private map: MlMap | null = null;
-  private readonly pulseMarkers = new Map<number, Marker>();
+  private readonly tripMarkers = new Map<number, Marker>();
+  private readonly refreshTrips = () => this.tripStore.refresh(undefined);
+  private tripPositionTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     effect(() => {
@@ -55,6 +59,7 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
           properties: { id: h.id, name: h.name, hasHost: h.hasHost },
         })),
       });
+      this.syncActiveTripMarkers();
     });
 
     effect(() => {
@@ -71,15 +76,15 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
     });
 
     effect(() => {
-      const trips = this.tripStore.activeTrips();
-      const source = this.map?.getSource('active-trips') as GeoJSONSource | undefined;
-      source?.setData(this.activeTripsGeoJson(trips));
-      if (!this.map) return;
-      this.syncPulseMarkers(trips);
+      this.syncActiveTripMarkers();
     });
   }
 
   ngAfterViewInit(): void {
+    window.addEventListener('focus', this.refreshTrips);
+    document.addEventListener('visibilitychange', this.refreshTrips);
+    this.tripPositionTimer = setInterval(() => this.syncActiveTripMarkers(), TRIP_POSITION_UPDATE_MS);
+
     this.map = new maplibregl.Map({
       container: this.host().nativeElement,
       style: this.rasterStyle(),
@@ -92,7 +97,6 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
     this.map.on('load', () => {
       const map = this.map!;
       map.addSource('harbours', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      map.addSource('active-trips', { type: 'geojson', data: this.activeTripsGeoJson(this.tripStore.activeTrips()) });
 
       map.addLayer({
         id: 'harbour-points',
@@ -106,26 +110,6 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
         },
       });
 
-      map.addLayer({
-        id: 'active-trip-points',
-        type: 'circle',
-        source: 'active-trips',
-        paint: {
-          'circle-radius': 7,
-          'circle-color': [
-            'match',
-            ['get', 'status'],
-            'OVERDUE',
-            '#c1502e',
-            'ALERTED',
-            '#c1502e',
-            '#35a7ff',
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-
       map.on('click', 'harbour-points', (e: MapLayerMouseEvent) => {
         const id = e.features?.[0]?.properties?.['id'];
         if (typeof id === 'number') this.harbourStore.select(id);
@@ -134,70 +118,110 @@ export class ChartMapComponent implements AfterViewInit, OnDestroy {
       map.on('mouseleave', 'harbour-points', () => (map.getCanvas().style.cursor = ''));
 
       this.harbourStore.load();
-      this.syncPulseMarkers(this.tripStore.activeTrips());
+      this.syncActiveTripMarkers();
     });
   }
 
   ngOnDestroy(): void {
-    this.pulseMarkers.forEach((m) => m.remove());
+    window.removeEventListener('focus', this.refreshTrips);
+    document.removeEventListener('visibilitychange', this.refreshTrips);
+    if (this.tripPositionTimer != null) {
+      clearInterval(this.tripPositionTimer);
+    }
+    this.tripMarkers.forEach((m) => m.remove());
     this.map?.remove();
   }
 
-  /** Reconciles DOM pulse markers with the current active-trip list. */
-  private syncPulseMarkers(trips: ActiveTrip[]): void {
+  private syncActiveTripMarkers(): void {
+    if (!this.map) return;
+
+    const trips = this.tripStore.activeTrips();
+    const harbours = this.harbourStore.harbours();
     const seen = new Set<number>();
 
     for (const trip of trips) {
-      if (trip.markerLat == null || trip.markerLon == null) continue;
+      const position = this.tripPosition(trip, harbours);
+      if (!position) continue;
       seen.add(trip.id);
 
-      const isAlarmed = trip.status === 'OVERDUE' || trip.status === 'ALERTED';
-      const isApprox = trip.locationConfidence === 'APPROXIMATE';
-      let marker = this.pulseMarkers.get(trip.id);
-
+      let marker = this.tripMarkers.get(trip.id);
       if (!marker) {
-        const el = document.createElement('div');
-        el.className = 'trip-pulse';
-        marker = new maplibregl.Marker({ element: el })
-          .setLngLat([trip.markerLon, trip.markerLat])
-          .addTo(this.map!);
-        this.pulseMarkers.set(trip.id, marker);
+        marker = new maplibregl.Marker({ element: this.createTripBoatElement() })
+          .setLngLat(position)
+          .addTo(this.map);
+        this.tripMarkers.set(trip.id, marker);
       } else {
-        marker.setLngLat([trip.markerLon, trip.markerLat]);
+        marker.setLngLat(position);
       }
 
-      const el = marker.getElement();
-      el.classList.toggle('trip-pulse--alarm', isAlarmed);
-      el.classList.toggle('trip-pulse--approx', isApprox);
-      el.title = isApprox
-        ? `Approximate area — ${trip.destination}`
-        : `Heading to ${trip.destination}`;
+      marker.getElement().style.setProperty('--trip-bearing', `${this.tripBearing(trip, harbours)}deg`);
+      marker.getElement().title = `Heading to ${trip.destination}`;
     }
 
-    for (const [tripId, marker] of this.pulseMarkers) {
+    for (const [tripId, marker] of this.tripMarkers) {
       if (!seen.has(tripId)) {
         marker.remove();
-        this.pulseMarkers.delete(tripId);
+        this.tripMarkers.delete(tripId);
       }
     }
   }
 
-  private activeTripsGeoJson(trips: ActiveTrip[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
-    return {
-      type: 'FeatureCollection',
-      features: trips
-        .filter((trip) => trip.markerLat != null && trip.markerLon != null)
-        .map((trip) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [trip.markerLon!, trip.markerLat!] },
-          properties: {
-            id: trip.id,
-            destination: trip.destination,
-            status: trip.status,
-            locationConfidence: trip.locationConfidence,
-          },
-        })),
-    };
+  private createTripBoatElement(): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'trip-boat';
+    el.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 2.6 19.2 20.8 12 17.2 4.8 20.8 12 2.6Z" />
+      </svg>
+    `;
+    return el;
+  }
+
+  private tripPosition(trip: ActiveTrip, harbours: Harbour[]): [number, number] | null {
+    if (trip.markerLat == null || trip.markerLon == null) return null;
+
+    const end: [number, number] = [trip.markerLon, trip.markerLat];
+    const departure = trip.departureHarbourId == null
+      ? null
+      : harbours.find((h) => h.id === trip.departureHarbourId) ?? null;
+    if (!departure) return end;
+
+    const startedAt = Date.parse(trip.departedAt);
+    const etaReturn = Date.parse(trip.etaReturn);
+    if (!Number.isFinite(startedAt) || !Number.isFinite(etaReturn) || etaReturn <= startedAt) {
+      return end;
+    }
+
+    const progress = Math.min(1, Math.max(0, (Date.now() - startedAt) / (etaReturn - startedAt)));
+    const start: [number, number] = [departure.lon, departure.lat];
+    return [
+      start[0] + (end[0] - start[0]) * progress,
+      start[1] + (end[1] - start[1]) * progress,
+    ];
+  }
+
+  private tripBearing(trip: ActiveTrip, harbours: Harbour[]): number {
+    if (trip.markerLat == null || trip.markerLon == null || trip.departureHarbourId == null) return 0;
+
+    const departure = harbours.find((h) => h.id === trip.departureHarbourId);
+    if (!departure) return 0;
+
+    const lon1 = this.toRad(departure.lon);
+    const lon2 = this.toRad(trip.markerLon);
+    const lat1 = this.toRad(departure.lat);
+    const lat2 = this.toRad(trip.markerLat);
+    const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2)
+      - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+    return (this.toDeg(Math.atan2(y, x)) + 360) % 360;
+  }
+
+  private toRad(deg: number): number {
+    return deg * Math.PI / 180;
+  }
+
+  private toDeg(rad: number): number {
+    return rad * 180 / Math.PI;
   }
 
   private rasterStyle(): maplibregl.StyleSpecification {

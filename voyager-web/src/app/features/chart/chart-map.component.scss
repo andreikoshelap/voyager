@@ -8,67 +8,20 @@
   height: 100%;
 }
 
-/* Pulsing status marker.
-   Default (CONFIRMED): solid dot + pulsing halo — "a boat is expected
-   exactly here". --approx (APPROXIMATE): dashed, larger, more transparent
-   — "somewhere out here", deliberately fuzzy-looking so it can't be
-   mistaken for a precise position. --alarm (OVERDUE/ALERTED): coral. */
-.trip-pulse {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--chart-amber, #d9a441);
-  box-shadow: 0 0 0 2px rgba(11, 34, 51, 0.6);
+.trip-boat {
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
 }
 
-.trip-pulse::after {
-  content: '';
-  position: absolute;
-  inset: -14px;
-  border-radius: 50%;
-  background: var(--chart-amber, #d9a441);
-  opacity: 0.45;
-  animation: trip-pulse-ring 2.2s ease-out infinite;
-}
-
-.trip-pulse--approx {
-  width: 10px;
-  height: 10px;
-  background: transparent;
-  border: 2px dashed var(--chart-amber, #d9a441);
-  box-shadow: none;
-}
-
-.trip-pulse--approx::after {
-  inset: -20px;
-  opacity: 0.25;
-  animation-duration: 3.2s;
-}
-
-.trip-pulse--alarm {
-  background: var(--chart-coral, #c1502e);
-  border-color: var(--chart-coral, #c1502e);
-}
-
-.trip-pulse--alarm::after {
-  background: var(--chart-coral, #c1502e);
-  animation-duration: 1.1s;
-}
-
-@keyframes trip-pulse-ring {
-  0% {
-    transform: scale(0.4);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .trip-pulse::after {
-    animation: none;
-    opacity: 0.25;
-  }
+.trip-boat svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: #c1502e;
+  stroke: #ffffff;
+  stroke-width: 2;
+  paint-order: stroke fill;
+  transform: rotate(var(--trip-bearing, 0deg));
+  transform-origin: center;
 }

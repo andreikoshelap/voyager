@@ -11,7 +11,7 @@ interface TripState {
   loading: boolean;
 }
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 5_000;
 
 /**
  * Polls /api/trips/active every 30s to drive the "boats at sea" layer.
@@ -22,6 +22,19 @@ export const TripStore = signalStore(
   { providedIn: 'root' },
   withState<TripState>({ activeTrips: [], loading: false }),
   withMethods((store, tripService = inject(TripService)) => ({
+    refresh: rxMethod<void>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap(() =>
+          tripService.getActive().pipe(
+            tapResponse({
+              next: (activeTrips) => patchState(store, { activeTrips, loading: false }),
+              error: () => patchState(store, { loading: false }),
+            }),
+          ),
+        ),
+      ),
+    ),
     poll: rxMethod<void>(
       pipe(
         switchMap(() =>
@@ -43,7 +56,7 @@ export const TripStore = signalStore(
   })),
   withHooks({
     onInit(store) {
-      store.poll();
+      store.poll(undefined);
     },
   }),
 );
