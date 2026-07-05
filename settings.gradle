@@ -7,4 +7,4 @@ pluginManagement {
 
 rootProject.name = 'voyager-infra'
 
-include 'voyager-log'
+include 'voyage-log'

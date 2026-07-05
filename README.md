@@ -8,8 +8,8 @@ trips that do not check in on time.
 
 ## Applications
 
-- `voyager-log` - Spring Boot backend, Telegram bot, PostgreSQL/Flyway schema, trip and harbour APIs.
-- `voyager-web` - Angular frontend with MapLibre chart, harbour panel, Telegram deep links, and active-trip boat markers.
+- `voyage-log` - Spring Boot backend, Telegram bot, PostgreSQL/Flyway schema, trip and harbour APIs.
+- `voyage-web` - Angular frontend with MapLibre chart, harbour panel, Telegram deep links, and active-trip boat markers.
 
 ## Current Capabilities
 
@@ -63,13 +63,13 @@ Use it for `db` only until those services are cleaned up.
 Run the backend in local long-polling mode:
 
 ```bash
-./gradlew.bat :voyager-log:bootRun --args="--spring.profiles.active=local"
+./gradlew.bat :voyage-log:bootRun --args="--spring.profiles.active=local"
 ```
 
 On Unix-like shells:
 
 ```bash
-./gradlew :voyager-log:bootRun --args="--spring.profiles.active=local"
+./gradlew :voyage-log:bootRun --args="--spring.profiles.active=local"
 ```
 
 If the bot had a webhook configured before, remove it once before local polling:
@@ -81,7 +81,7 @@ curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"
 Run the frontend:
 
 ```bash
-cd voyager-web
+cd voyage-web
 npm install
 npm start
 ```
@@ -101,7 +101,7 @@ Backend:
 Frontend:
 
 ```bash
-cd voyager-web
+cd voyage-web
 npm run build
 ```
 
@@ -111,7 +111,7 @@ Angular currently warns that `maplibre-gl` is not ESM. That is an optimization w
 
 ```text
 .
-├── voyager-log/
+├── voyage-log/
 │   ├── src/main/java/ee/voyagelog/
 │   │   ├── bot/          Telegram command dispatcher and chat state
 │   │   ├── harbour/      Harbour entity, repository, API
@@ -123,7 +123,7 @@ Angular currently warns that `maplibre-gl` is not ESM. That is an optimization w
 │       ├── application-local.yml
 │       ├── application-prod.yml
 │       └── db/migration/ Flyway migrations
-├── voyager-web/
+├── voyage-web/
 │   └── src/app/
 │       ├── core/         API clients and DTO models
 │       ├── state/        NgRx SignalStore state
