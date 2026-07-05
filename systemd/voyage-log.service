@@ -1,0 +1,24 @@
+[Unit]
+Description=voyage-log Spring Boot backend
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=voyagelog
+Group=voyagelog
+WorkingDirectory=/opt/voyage-log
+EnvironmentFile=/opt/voyage-log/voyage-log.env
+ExecStart=/usr/bin/java -jar /opt/voyage-log/voyage-log.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+
+# Same hardening posture as portfell-admin/ledger-api on this box.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/voyage-log
+
+[Install]
+WantedBy=multi-user.target
