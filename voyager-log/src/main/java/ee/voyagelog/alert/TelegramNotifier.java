@@ -37,8 +37,8 @@ public class TelegramNotifier implements NotificationPort {
         skippers.findById(trip.getSkipperId()).ifPresent(skipper ->
                 telegram.sendMessage(skipper.getTelegramChatId(), """
                         Trip #%d is overdue (ETA was %s).
-                        Are you ashore? Reply with /back - otherwise your emergency contact will be notified soon.
-                        """.formatted(trip.getId(), TIME.format(trip.getEtaReturn()))));
+                        Are you ashore? Reply with /back %d - otherwise your emergency contact will be notified soon.
+                        """.formatted(trip.getId(), TIME.format(trip.getEtaReturn()), trip.getId())));
     }
 
     @Override

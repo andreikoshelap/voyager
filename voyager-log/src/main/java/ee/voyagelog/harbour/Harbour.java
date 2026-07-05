@@ -10,10 +10,11 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
 /**
- * UPDATED: added seawardBearingDeg — a rough, manually-eyeballed bearing
- * (degrees) toward open water, used only as the fallback direction for an
- * APPROXIMATE trip marker when no destination was given or resolved. Not
- * surveyed data, see V3 migration comment.
+ * UPDATED: added harbourCode, address, website, email, amenities, sourceUrl
+ * — populated from an Estonia-wide guest-harbor registry export (V4
+ * migration). All nullable: the original 7 Tallinn-bay harbors only have
+ * them where a matching registry row was found, and harbors added by hand
+ * later won't have them at all.
  */
 @Entity
 @Table(name = "harbour")
@@ -37,6 +38,13 @@ public class Harbour {
     private String priceNote;
     @Column(name = "seaward_bearing_deg")
     private Integer seawardBearingDeg;
+    private String harbourCode;
+    private String nickname;
+    private String address;
+    private String website;
+    private String email;
+    private String amenities;
+    private String sourceUrl;
 
     protected Harbour() {
     }
@@ -79,5 +87,33 @@ public class Harbour {
 
     public Integer getSeawardBearingDeg() {
         return seawardBearingDeg;
+    }
+
+    public String getHarbourCode() {
+        return harbourCode;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
     }
 }

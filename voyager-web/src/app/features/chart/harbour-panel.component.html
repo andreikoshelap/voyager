@@ -8,13 +8,27 @@
     <div class="panel__body">
       <h2 class="panel__name">{{ h.name }}</h2>
 
+      @if (h.harbourCode || h.nickname || h.address) {
+        <div class="panel__meta">
+          @if (h.harbourCode) {
+            <span class="panel__code">{{ h.harbourCode }}</span>
+          }
+          @if (h.nickname) {
+            <span class="panel__nickname">{{ h.nickname }}</span>
+          }
+          @if (h.address) {
+            <span class="panel__address">{{ h.address }}</span>
+          }
+        </div>
+      }
+
       <dl class="panel__facts">
         <div class="panel__fact">
           <dt>Depth</dt>
           <dd class="data">{{ h.depthM ?? '—' }} m</dd>
         </div>
         <div class="panel__fact">
-          <dt>VHF</dt>
+          <dt>VHF ch.</dt>
           <dd class="data">{{ h.vhfChannel ?? '—' }}</dd>
         </div>
         <div class="panel__fact">
@@ -22,17 +36,43 @@
           <dd class="data">{{ h.priceNote ?? '—' }}</dd>
         </div>
         <div class="panel__fact">
-          <dt>Berths</dt>
+          <dt>Requests</dt>
           <dd class="data" [class.data--ok]="h.hasHost" [class.data--muted]="!h.hasHost">
-            {{ h.hasHost ? 'ask via bot' : 'no host yet' }}
+            {{ h.hasHost ? 'via bot' : 'not wired' }}
           </dd>
         </div>
       </dl>
 
+      @if (h.phone || h.email || h.website || h.sourceUrl) {
+        <div class="panel__links">
+          @if (h.phone) {
+            <a [href]="'tel:' + h.phone">{{ h.phone }}</a>
+          }
+          @if (h.email) {
+            <a [href]="'mailto:' + h.email">{{ h.email }}</a>
+          }
+          @if (h.website) {
+            <a [href]="h.website" target="_blank" rel="noopener">Website</a>
+          }
+          @if (h.sourceUrl) {
+            <a [href]="h.sourceUrl" target="_blank" rel="noopener">Registry</a>
+          }
+        </div>
+      }
+
+      @if (h.amenities) {
+        <div class="panel__section">
+          <span class="panel__section-label">Amenities</span>
+          <p>{{ h.amenities }}</p>
+        </div>
+      }
+
       <div class="panel__actions">
-        <a class="btn btn--primary" [href]="requestBerthUrl()" target="_blank" rel="noopener">
-          Request a berth ↗
-        </a>
+        @if (h.hasHost) {
+          <a class="btn btn--primary" [href]="requestBerthUrl()" target="_blank" rel="noopener">
+            Request a berth ↗
+          </a>
+        }
         <a class="btn" [href]="sailHereUrl()" target="_blank" rel="noopener">Log a trip here ↗</a>
       </div>
     </div>

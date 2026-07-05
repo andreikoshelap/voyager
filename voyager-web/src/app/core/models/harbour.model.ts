@@ -8,6 +8,13 @@ export interface Harbour {
   depthM: number | null;
   priceNote: string | null;
   hasHost: boolean;
+  harbourCode: string | null;
+  nickname: string | null;
+  address: string | null;
+  website: string | null;
+  email: string | null;
+  amenities: string | null;
+  sourceUrl: string | null;
 }
 
 /** Matches ee.voyagelog.api.GeoJson.FeatureCollection on the backend. */
@@ -27,6 +34,13 @@ export interface HarbourFeature {
     depthM: number | null;
     priceNote: string | null;
     hasHost: boolean;
+    harbourCode: string | null;
+    nickname: string | null;
+    address: string | null;
+    website: string | null;
+    email: string | null;
+    amenities: string | null;
+    sourceUrl: string | null;
   };
 }
 
@@ -42,5 +56,12 @@ export function harbourFromFeature(f: HarbourFeature): Harbour {
     depthM: f.properties.depthM,
     priceNote: f.properties.priceNote,
     hasHost: f.properties.hasHost,
+    harbourCode: f.properties.harbourCode,
+    nickname: f.properties.nickname,
+    address: f.properties.address,
+    website: f.properties.website,
+    email: f.properties.email,
+    amenities: f.properties.amenities,
+    sourceUrl: f.properties.sourceUrl,
   };
 }

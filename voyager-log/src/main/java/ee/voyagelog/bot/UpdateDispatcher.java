@@ -91,14 +91,14 @@ public class UpdateDispatcher {
             } else if (text.startsWith("/sail")) {
                 handleSail(chatId, text);
             } else if (text.startsWith("/back")) {
-                handleBack(chatId);
+                handleBack(chatId, text);
             } else if (text.startsWith("/status")) {
-                handleStatus(chatId);
+                handleStatus(chatId, text);
             } else if (text.startsWith("/harbour")) {
                 handleHarbour(chatId, text);
             } else {
                 telegram.sendMessage(chatId,
-                        "Команды: /sail <гавань отправления> <часов> [экипаж], /back, /status, /harbour <название>");
+                        "Команды: /sail <гавань отправления> <часов> [экипаж], /back <номер>, /status [номер], /harbour <название>");
             }
         } catch (IllegalStateException | IllegalArgumentException e) {
             telegram.sendMessage(chatId, e.getMessage());
@@ -131,8 +131,8 @@ public class UpdateDispatcher {
                 Привет, %s! Это судовой журнал выходов в море.
 
                 /sail Pirita 6 2 — регистрирую выход: вышел из Pirita, вернусь через 6 часов, экипаж 2
-                /back — я на берегу, рейс закрыт
-                /status — активный рейс
+                /back <номер> — я на берегу, рейс закрыт
+                /status — список активных рейсов
                 /harbour Aegna — справка по гавани
 
                 Совет: на карте voyage-log нажми «Log a trip here» на нужной гавани —
@@ -213,7 +213,7 @@ public class UpdateDispatcher {
         int hours = Integer.parseInt(parts[hoursIdx]);
         String typedHarbour = String.join(" ", Arrays.copyOfRange(parts, 1, hoursIdx));
 
-        Harbour departure = harbours.findFirstByNameIgnoreCaseContaining(typedHarbour)
+        Harbour departure = resolveHarbour(typedHarbour)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Не нашёл гавань «" + typedHarbour + "» в справочнике. Проверь /harbour " + typedHarbour
                                 + " или уточни название."));
@@ -236,8 +236,9 @@ public class UpdateDispatcher {
                 %s
                 Экипаж: %d
                 ETA возвращения: %s
-                Семь футов под килем! Не забудь /back на берегу.
-                """.formatted(trip.getId(), routeLine, trip.getCrewCount(), TIME.format(trip.getEtaReturn()));
+                Семь футов под килем! Не забудь /back %d на берегу.
+                """.formatted(trip.getId(), routeLine, trip.getCrewCount(), TIME.format(trip.getEtaReturn()),
+                trip.getId());
     }
 
     /** Parses "Aegna 4 2" / "по заливу 4" / "4" into destination text + hours + crew. */
@@ -270,7 +271,7 @@ public class UpdateDispatcher {
      */
     private TripPlan resolveDestination(Harbour departure, String destinationText) {
         if (destinationText != null && !destinationText.isBlank()) {
-            Optional<Harbour> match = harbours.findFirstByNameIgnoreCaseContaining(destinationText.trim());
+            Optional<Harbour> match = resolveHarbour(destinationText.trim());
             if (match.isPresent()) {
                 Harbour h = match.get();
                 return new TripPlan(h.getId(), h.getName(), h.getLat(), h.getLon(), LocationConfidence.CONFIRMED);
@@ -287,20 +288,38 @@ public class UpdateDispatcher {
                             LocationConfidence confidence) {
     }
 
-    private void handleBack(long chatId) {
+    private void handleBack(long chatId, String text) {
         Skipper skipper = requireSkipper(chatId);
-        Optional<Trip> closed = tripService.checkIn(skipper.getId());
+        Optional<Long> tripId = optionalTripId(text, "/back");
+        Optional<Trip> closed = tripId
+                .map(id -> tripService.checkIn(skipper.getId(), id))
+                .orElseGet(() -> tripService.checkIn(skipper.getId()));
         telegram.sendMessage(chatId, closed
                 .map(t -> "Рейс №" + t.getId() + " закрыт. С возвращением!")
-                .orElse("Активного рейса нет."));
+                .orElse(tripId
+                        .map(id -> "Активный рейс №" + id + " не найден.")
+                        .orElse("Активного рейса нет.")));
     }
 
-    private void handleStatus(long chatId) {
+    private void handleStatus(long chatId, String text) {
         Skipper skipper = requireSkipper(chatId);
-        telegram.sendMessage(chatId, tripService.activeTrip(skipper.getId())
-                .map(t -> "Рейс №%d: %s, статус %s, ETA %s".formatted(
-                        t.getId(), t.getDestination(), t.getStatus(), TIME.format(t.getEtaReturn())))
-                .orElse("Активного рейса нет."));
+        Optional<Long> tripId = optionalTripId(text, "/status");
+        if (tripId.isPresent()) {
+            telegram.sendMessage(chatId, tripService.activeTrip(skipper.getId(), tripId.get())
+                    .map(this::statusLine)
+                    .orElse("Активный рейс №" + tripId.get() + " не найден."));
+            return;
+        }
+
+        var active = tripService.activeTrips(skipper.getId());
+        if (active.isEmpty()) {
+            telegram.sendMessage(chatId, "Активного рейса нет.");
+            return;
+        }
+        telegram.sendMessage(chatId, "Активные рейсы:\n" + active.stream()
+                .map(this::statusLine)
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse(""));
     }
 
     private void handleHarbour(long chatId, String text) {
@@ -308,7 +327,7 @@ public class UpdateDispatcher {
         if (query.isEmpty()) {
             throw new IllegalArgumentException("Формат: /harbour <название>, например: /harbour Kelnase");
         }
-        Optional<Harbour> found = harbours.findFirstByNameIgnoreCaseContaining(query);
+        Optional<Harbour> found = resolveHarbour(query);
         telegram.sendMessage(chatId, found
                 .map(h -> """
                         %s
@@ -320,6 +339,61 @@ public class UpdateDispatcher {
                         orDash(h.getDepthM()), orDash(h.getVhfChannel()),
                         orDash(h.getPhone()), orDash(h.getPriceNote())))
                 .orElse("Гавань не нашёл. Попробуй /harbour Pirita"));
+    }
+
+    private Optional<Harbour> resolveHarbour(String query) {
+        String normalized = query.trim();
+        if (normalized.isEmpty()) {
+            return Optional.empty();
+        }
+        String folded = normalized.toLowerCase();
+        var all = harbours.findAll();
+
+        Optional<Harbour> byCode = all.stream()
+                .filter(h -> h.getHarbourCode() != null && h.getHarbourCode().equalsIgnoreCase(normalized))
+                .findFirst();
+        if (byCode.isPresent()) {
+            return byCode;
+        }
+
+        Optional<Harbour> byNickname = all.stream()
+                .filter(h -> h.getNickname() != null && h.getNickname().equalsIgnoreCase(normalized))
+                .findFirst();
+        if (byNickname.isPresent()) {
+            return byNickname;
+        }
+
+        Optional<Harbour> byExactName = all.stream()
+                .filter(h -> h.getName().equalsIgnoreCase(normalized))
+                .findFirst();
+        if (byExactName.isPresent()) {
+            return byExactName;
+        }
+
+        return all.stream()
+                .filter(h -> h.getName().toLowerCase().contains(folded))
+                .findFirst();
+    }
+
+    private String statusLine(Trip trip) {
+        return "Рейс №%d: %s, статус %s, ETA %s".formatted(
+                trip.getId(), trip.getDestination(), trip.getStatus(), TIME.format(trip.getEtaReturn()));
+    }
+
+    private Optional<Long> optionalTripId(String text, String command) {
+        String args = text.replaceFirst(command + "(?:@\\w+)?", "").trim();
+        if (args.isEmpty()) {
+            return Optional.empty();
+        }
+        String[] parts = args.split("\\s+");
+        if (parts.length != 1) {
+            throw new IllegalArgumentException("Формат: " + command + " <номер рейса>");
+        }
+        try {
+            return Optional.of(Long.parseLong(parts[0]));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Номер рейса должен быть числом. Формат: " + command + " <номер рейса>");
+        }
     }
 
     private Skipper requireSkipper(long chatId) {
